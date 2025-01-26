@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once 'user_finance_info.php';
+require_once 'user_finance_info.php'; // Include the financial data fetching file
 include '../includes/header2.php';
 include 'db.php';
 
@@ -11,7 +11,9 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-$financial_data = fetchUserFinancialData($conn, $user_id);
+// Fetch user financial data
+$group_id = $_GET['group_id'] ?? null; // Get group ID from request if available
+$financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
 ?>
 
 <!DOCTYPE html>
@@ -76,24 +78,19 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Savings Summary -->
+            <!-- Savings Overview -->
             <div class="md:col-span-1 bg-white/70 p-6 rounded-xl shadow-md">
                 <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">Savings Overview</h2>
                 <div class="space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Total Individual Savings</span>
+                        <span class="text-gray-600">Total Savings</span>
                         <span
-                            class="font-bold text-green-600">BDT <?= number_format($financial_data['individual_savings'], 2) ?></span>
+                            class="font-bold text-green-600">৳<?= number_format($financial_data['individual_savings'], 2) ?></span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Monthly Income</span>
+                        <span class="text-gray-600">Monthly Savings</span>
                         <span
-                            class="font-bold text-blue-600">$<?= number_format($financial_data['monthly_income'], 2) ?></span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Monthly Expenses</span>
-                        <span
-                            class="font-bold text-red-600">$<?= number_format($financial_data['monthly_expenses'], 2) ?></span>
+                            class="font-bold text-blue-600">৳<?= number_format($financial_data['monthly_income'], 2) ?></span>
                     </div>
                 </div>
 
@@ -104,8 +101,8 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-600"><?= htmlspecialchars($group['group_name']) ?></span>
                                 <span class="text-sm font-medium text-indigo-600">
-                                    $<?= number_format($group['total_contribution'], 2) ?> /
-                                    $<?= number_format($group['goal_amount'], 2) ?>
+                                    ৳<?= number_format($group['total_contribution'], 2) ?> /
+                                    ৳<?= number_format($group['goal_amount'], 2) ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>
@@ -134,8 +131,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
                             class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
                             <option value="all">All Groups</option>
                             <?php foreach ($financial_data['group_contributions'] as $group): ?>
-                                <option value="<?= $group['group_id'] ?>"><?= htmlspecialchars($group['group_name']) ?>
-                                </option>
+                                <option value="<?= $group['group_id'] ?>"><?= htmlspecialchars($group['group_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
