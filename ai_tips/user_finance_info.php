@@ -33,28 +33,16 @@ function fetchUserFinancialData($conn, $user_id, $group_id = null) {
         $financial_data['monthly_expenses'] = abs($row['expenses']) ?? 0;
 
         // Group Contributions
-        $query = "
-            SELECT g.group_id, g.group_name, COALESCE(SUM(s.amount), 0) AS total_contribution, 
-                   g.goal_amount, g.emergency_fund
+        $stmt = $conn->prepare("SELECT g.group_id, g.group_name, 
+            COALESCE(SUM(CASE WHEN s.user_id = ? THEN s.amount ELSE 0 END), 0) AS user_contribution, 
+            COALESCE(SUM(s.amount), 0) AS total_group_savings, 
+            g.goal_amount, g.emergency_fund
             FROM group_membership gm
             JOIN my_group g ON gm.group_id = g.group_id
-            LEFT JOIN savings s ON g.group_id = s.group_id AND s.user_id = ?
+            LEFT JOIN savings s ON g.group_id = s.group_id
             WHERE gm.user_id = ? AND gm.status = 'approved'
-        ";
-
-        if ($group_id) {
-            $query .= " AND g.group_id = ?";
-        }
-
-        $query .= " GROUP BY g.group_id, g.group_name, g.goal_amount, g.emergency_fund";
-        $stmt = $conn->prepare($query);
-
-        if ($group_id) {
-            $stmt->bind_param("iii", $user_id, $user_id, $group_id);
-        } else {
-            $stmt->bind_param("ii", $user_id, $user_id);
-        }
-
+            GROUP BY g.group_id, g.group_name, g.goal_amount, g.emergency_fund");
+        $stmt->bind_param("ii", $user_id, $user_id);
         $stmt->execute();
         $financial_data['group_contributions'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -77,7 +65,7 @@ function fetchUserFinancialData($conn, $user_id, $group_id = null) {
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();
         if ($row['active_loans'] > 0) {
-            $financial_data['loan_status'] = "Active loans with outstanding amount: BDT " . number_format($row['outstanding_amount'], 2);
+            $financial_data['loan_status'] = "Active loans with outstanding amount: ৳" . number_format($row['outstanding_amount'], 2);
         }
 
         // Emergency Fund

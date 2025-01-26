@@ -100,9 +100,9 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                         <?php foreach ($financial_data['group_contributions'] as $group): ?>
                             <div class="flex items-center justify-between">
                                 <span class="text-sm text-gray-600"><?= htmlspecialchars($group['group_name']) ?></span>
-                                <span class="text-sm font-medium text-indigo-600">
-                                    ৳<?= number_format($group['total_contribution'], 2) ?> /
-                                    ৳<?= number_format($group['goal_amount'], 2) ?>
+                                <span class="text-sm font-bold text-indigo-600">
+                                    ৳<?= number_format($group['user_contribution'], 2) ?> /
+                                    ৳<?= number_format($group['total_group_savings'], 2) ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>
