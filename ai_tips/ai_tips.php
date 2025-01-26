@@ -142,13 +142,32 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                         Question</label>
                     <select id="question-select"
                         class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
-                        <option value="savings_strategy">What savings strategy should I follow?</option>
                         <option value="investment_advice">What investment options should I consider?</option>
+                        <option value="savings_strategy">What savings strategy should I follow?</option>
                         <option value="risk_management">How should I manage my financial risks?</option>
                         <option value="emergency_fund">How should I handle my emergency fund?</option>
                         <option value="group_savings">How can we improve our group savings?</option>
                         <option value="custom">Custom Question</option>
                     </select>
+                </div>
+
+                <!-- Investment Options Section -->
+                <div id="investment-options" class="mb-4 hidden">
+                    <div class="mb-4">
+                        <label for="investment-time" class="block text-sm font-medium text-gray-700 mb-2">Investment Time Period</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="investment-time" class="w-20 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="1" value="1">
+                            <select id="investment-duration" class="w-32 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
+                                <option value="month">Month</option>
+                                <option value="year">Year</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="investment-type" class="block text-sm font-medium text-gray-700 mb-2">Investment Type</label>
+                        <input type="text" id="investment-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Enter investment type...">
+                    </div>
                 </div>
 
                 <!-- Custom Question Block -->
@@ -168,104 +187,69 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
     </div>
 
     <script>
-    async function displayAdvice(result) {
-        const aiResponse = document.getElementById('ai-response');
-        const advice = result.advice;
+        document.addEventListener('DOMContentLoaded', () => {
+            const questionSelect = document.getElementById('question-select');
+            const customQuestionBlock = document.getElementById('custom-question-block');
+            const investmentOptions = document.getElementById('investment-options');
 
-        aiResponse.innerHTML = `
-            <div class="space-y-6 animate-fade-in">
-                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-                    <h3 class="text-xl font-bold mb-4 text-gray-800">${advice.title || 'Financial Advice'}</h3>
-                    <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
-                    <div class="mt-4">
-                        <h4 class="font-semibold mb-2 text-gray-700">Action Steps:</h4>
-                        <ul class="space-y-2">
-                            ${advice.steps.map(step => `<li class="flex items-center text-gray-600"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    async function getAIResponse() {
-        try {
-            const aiResponse = document.getElementById('ai-response');
-            const savingsType = document.getElementById('savings-type').value;
-            const selectedGroupId = document.getElementById('group-id').value;
-            const selectedQuestion = document.getElementById('question-select').value;
-            const customQuestion = document.getElementById('custom-question').value.trim();
-
-            // Determine which question to send
-            const question = selectedQuestion === 'custom' ? customQuestion : selectedQuestion;
-            if (!question) {
-                aiResponse.classList.remove('hidden');
-                aiResponse.innerHTML = `
-                    <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                        <p class="text-red-700">Please select or enter a question.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Show loading state
-            aiResponse.classList.remove('hidden');
-            aiResponse.innerHTML = `
-                <div class="flex items-center justify-center p-4">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    <span class="ml-2">Analyzing financial data...</span>
-                </div>
-            `;
-
-            // Get financial data from PHP
-            const financialData = <?php echo json_encode($financial_data); ?>;
-
-            const response = await fetch('http://localhost:5000/generate_tips', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    savings_type: savingsType,
-                    group_id: selectedGroupId !== 'all' ? selectedGroupId : null,
-                    savings_data: financialData,
-                    question: question,
-                    all_groups_data: selectedGroupId === 'all' ? financialData.group_contributions : null
-                })
+            questionSelect.addEventListener('change', () => {
+                const value = questionSelect.value;
+                investmentOptions.classList.toggle('hidden', value !== 'investment_advice');
+                customQuestionBlock.classList.toggle('hidden', value !== 'custom');
             });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to generate advice');
-            }
+            document.getElementById('get-result').addEventListener('click', async () => {
+                const question = questionSelect.value === 'custom' 
+                    ? document.getElementById('custom-question').value.trim() 
+                    : questionSelect.value;
 
-            const result = await response.json();
-            if (result.status === 'success') {
-                displayAdvice(result);
-            } else {
-                throw new Error(result.error || 'Failed to generate advice');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            aiResponse.innerHTML = `
-                <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                    <p class="text-red-700">Error: ${error.message}</p>
-                </div>
-            `;
-        }
-    }
+                if (!question) {
+                    alert('Please select or write a question.');
+                    return;
+                }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('get-result').addEventListener('click', getAIResponse);
-        const questionSelect = document.getElementById('question-select');
-        questionSelect.addEventListener('change', () => {
-            const customQuestionBlock = document.getElementById('custom-question-block');
-            customQuestionBlock.classList.toggle('hidden', questionSelect.value !== 'custom');
-        });
-    });
+                const aiResponse = document.getElementById('ai-response');
+                aiResponse.classList.remove('hidden');
+                aiResponse.innerHTML = '<div class="flex items-center justify-center p-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div><span class="ml-2">Analyzing financial data...</span></div>';
 
-    document.getElementById('savings-type').addEventListener('change', () => {
-        const groupSelection = document.getElementById('group-selection');
-        groupSelection.classList.toggle('hidden', document.getElementById('savings-type').value !== 'group');
-    });
+const savingsType = document.getElementById('savings-type').value;
+const selectedGroupId = document.getElementById('group-id').value;
+const investmentTime = document.getElementById('investment-time')?.value || null;
+const investmentDuration = document.getElementById('investment-duration')?.value || null;
+const investmentType = document.getElementById('investment-type')?.value || null;
+
+// Get financial data from PHP
+const financialData = <?php echo json_encode($financial_data); ?>;
+
+const response = await fetch('http://localhost:5000/generate_tips', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        savings_type: savingsType,
+        group_id: selectedGroupId !== 'all' ? selectedGroupId : null,
+        savings_data: financialData,
+        question,
+        investment_time: investmentTime,
+        investment_duration: investmentDuration,
+        investment_type: investmentType,
+        all_groups_data: selectedGroupId === 'all' ? financialData.group_contributions : null
+    })
+});
+
+if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Failed to generate advice');
+}
+
+const result = await response.json();
+if (result.status === 'success') {
+    displayAdvice(result);
+} else {
+    throw new Error(result.error || 'Failed to generate advice');
+}
+});
+});
 </script>
-
+</body>
 </html>
+
