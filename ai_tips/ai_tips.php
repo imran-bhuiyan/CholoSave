@@ -102,7 +102,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                                 <span class="text-sm text-gray-600"><?= htmlspecialchars($group['group_name']) ?></span>
                                 <span class="text-sm font-bold text-indigo-600">
                                     ৳<?= number_format($group['user_contribution'], 2) ?> /
-                                    ৳<?= number_format($group['total_group_savings'], 2) ?>
+                                    ৳<?= number_format($group['total_contribution'], 2) ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>
@@ -142,11 +142,13 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                         Question</label>
                     <select id="question-select"
                         class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
-                        <option value="investment_advice">What investment options should I consider?</option>
+                        <option value="financial_health">What is my financial health?</option>
+                        <option value="budgeting">How can I improve my budgeting?</option>
+                        <option value="investment_advice">What are the best investment options for me over [Time Period] in [Investment Type]?</option>
                         <option value="savings_strategy">What savings strategy should I follow?</option>
                         <option value="risk_management">How should I manage my financial risks?</option>
-                        <option value="emergency_fund">How should I handle my emergency fund?</option>
-                        <option value="group_savings">How can we improve our group savings?</option>
+                        <!--<option value="emergency_fund">How should I handle my emergency fund?</option>
+                        <option value="group_savings">How can we improve our group savings?</option>-->
                         <option value="custom">Custom Question</option>
                     </select>
                 </div>
@@ -178,7 +180,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
 
                 <button id="get-result"
                     class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition font-semibold shadow-md">
-                    Get Financial Analysis
+                    Get Financial Advice
                 </button>
 
                 <div id="ai-response" class="mt-6 hidden"></div>
@@ -187,9 +189,14 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
     </div>
 
     <script>
-                async function displayAdvice(result) {
+              async function displayAdvice(result) {
     const aiResponse = document.getElementById('ai-response');
     const advice = result.advice;
+
+    // Replace asterisks with proper bullet points (HTML `<li>` tags)
+    const formattedSteps = advice.steps
+        .map(step => `<li class="flex items-center text-gray-600">${step.replace(/^\*/, '•')}</li>`)
+        .join('');
 
     aiResponse.innerHTML = `
         <div class="space-y-6 animate-fade-in">
@@ -198,14 +205,16 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                 <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
                 <div class="mt-4">
                     <h4 class="font-semibold mb-2 text-gray-700">Action Steps:</h4>
-                    <ul class="space-y-2">
-                        ${advice.steps.map(step => `<li class="flex items-center text-gray-600"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
+                    <ul class="space-y-2 list-disc pl-5">
+                        ${formattedSteps}
                     </ul>
                 </div>
             </div>
         </div>
     `;
 }
+
+
 
         document.addEventListener('DOMContentLoaded', () => {
             const questionSelect = document.getElementById('question-select');

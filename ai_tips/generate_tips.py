@@ -60,19 +60,18 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
         User’s Question:
         "{question}"
 
-        Instructions:
-        1. Offer actionable advice as answer to the user's question in 3-4 lines specific to the Bangladesh context, considering:
+         Instructions:
+        2 . Offer actionable advice as answer to the user's question in 3-4 lines specific to the Bangladesh context, considering:
             - Current Bangladesh economic situation
             - Local investment regulations
             - Risk factors specific to the Bangladesh market
             - Banks sector performance in Bangladesh
-        2. If applicable, provide specific, actionable investment advice in 2-3 lines and calculate profit based on the investment type, time period, and amount. Include:
+        3. If applicable, provide specific, actionable investment advice in 2-3 lines and calculate profit based on the investment type, time period, and amount. Include:
             - Risk assessment
             - Expected returns  (amount only), if the user haven't provided any time period, use 1 year as the default time period.
             - Local market considerations
             - Two alternative investment options
-        3. Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Start with "Hello" as a greeting.
-        4. Do not answer to anything else other than the financial advice question. Do not provide general financial advice or unrelated information.
+        4. Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Start with "Hello" as a greeting.
         """
 
         completion = client.chat.completions.create(
@@ -124,7 +123,7 @@ def generate_tips():
         # Get group data if a specific group is selected
         group_data = None
         if group_id:
-            group_data = next((group for group in savings_data['group_contributions'] if group['group_id'] == int(group_id)), None)
+            group_data = next((group for group in savings_data['group_contributions'] if str(group['group_id']) == str(group_id)), None)
 
         # Prepare investment data if provided
         investment_data = None

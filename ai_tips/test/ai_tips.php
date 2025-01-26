@@ -92,48 +92,73 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
 </div>
 
 <script>
+async function displayAdvice(result) {
+    const aiResponse = document.getElementById('ai-response');
+    const advice = result.advice;
+
+    aiResponse.innerHTML = `
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm p-6">
+                <h3 class="text-xl font-bold mb-4">${advice.title || 'Financial Advice'}</h3>
+                <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
+                <div class="mt-4">
+                    <h4 class="font-semibold mb-2">Action Steps:</h4>
+                    <ul class="space-y-2">
+                        ${advice.steps.map(step => `<li class="flex items-center"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 async function getAIResponse() {
-    const savingsData = {
-        individual_savings: parseFloat(document.getElementById('individual_savings').value),
-        monthly_income: parseFloat(document.getElementById('monthly_income').value),
-        monthly_expenses: parseFloat(document.getElementById('monthly_expenses').value),
-        group_contributions: parseFloat(document.getElementById('group_contributions').value),
-        investments: parseFloat(document.getElementById('investments').value),
-        loan_status: document.getElementById('loan_status').value,
-        emergency_fund: parseFloat(document.getElementById('emergency_fund').value),
-        emergency_fund_goal: parseFloat(document.getElementById('emergency_fund_goal').value)
-    };
-
-    const question = document.getElementById('question').value;
-    const groupData = {}; // Add group data if available
-    const allGroupsData = []; // Add all groups data if available
-
-    const requestData = {
-        savings_data: savingsData,
-        question: question,
-        group_data: groupData,
-        all_groups_data: allGroupsData
-    };
-
-    console.log('Request Data:', requestData); // Log the request data
-
     try {
-        const response = await fetch('http://127.0.0.1:5000/generate_tips', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        });
+        const aiResponse = document.getElementById('ai-response');
+        const selectedQuestion = document.getElementById('question-select').value;
+        const customQuestion = document.getElementById('custom-question').value.trim();
 
-        const result = await response.json();
-
-        if (response.ok) {
+        // Determine which question to send
+        const question = customQuestion || selectedQuestion;
+        if (!question) {
+            aiResponse.classList.remove('hidden');
             aiResponse.innerHTML = `
-                <div class="bg-green-100 border-l-4 border-green-500 p-4">
-                    <p class="text-green-700">Advice: ${result.advice}</p>
+                <div class="bg-red-100 border-l-4 border-red-500 p-4">
+                    <p class="text-red-700">Please select or enter a question.</p>
                 </div>
             `;
+            return;
+        }
+
+        // Show loading state
+        aiResponse.classList.remove('hidden');
+        aiResponse.innerHTML = `
+            <div class="flex items-center justify-center p-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2">Analyzing financial data...</span>
+            </div>
+        `;
+
+        // Get financial data from PHP
+        const financialData = <?php echo json_encode($financial_data); ?>;
+
+        const response = await fetch('http://localhost:5000/generate_tips', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                savings_data: financialData,
+                question: question
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to generate advice');
+        }
+
+        const result = await response.json();
+        if (result.status === 'success') {
+            displayAdvice(result);
         } else {
             throw new Error(result.error || 'Failed to generate advice');
         }
