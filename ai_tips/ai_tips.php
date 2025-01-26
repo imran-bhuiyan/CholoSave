@@ -90,7 +90,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">Monthly Savings</span>
                         <span
-                            class="font-bold text-blue-600">৳<?= number_format($financial_data['monthly_income'], 2) ?></span>
+                            class="font-bold text-blue-600">৳<?= number_format($financial_data['monthly_savings'], 2) ?></span>
                     </div>
                 </div>
 
@@ -187,6 +187,26 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
     </div>
 
     <script>
+                async function displayAdvice(result) {
+    const aiResponse = document.getElementById('ai-response');
+    const advice = result.advice;
+
+    aiResponse.innerHTML = `
+        <div class="space-y-6 animate-fade-in">
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                <h3 class="text-xl font-bold mb-4 text-gray-800">${advice.title || 'Financial Advice'}</h3>
+                <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
+                <div class="mt-4">
+                    <h4 class="font-semibold mb-2 text-gray-700">Action Steps:</h4>
+                    <ul class="space-y-2">
+                        ${advice.steps.map(step => `<li class="flex items-center text-gray-600"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
         document.addEventListener('DOMContentLoaded', () => {
             const questionSelect = document.getElementById('question-select');
             const customQuestionBlock = document.getElementById('custom-question-block');
@@ -197,6 +217,12 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                 investmentOptions.classList.toggle('hidden', value !== 'investment_advice');
                 customQuestionBlock.classList.toggle('hidden', value !== 'custom');
             });
+
+            document.getElementById('savings-type').addEventListener('change', () => {
+        const groupSelection = document.getElementById('group-selection');
+        groupSelection.classList.toggle('hidden', document.getElementById('savings-type').value !== 'group');
+    });
+
 
             document.getElementById('get-result').addEventListener('click', async () => {
                 const question = questionSelect.value === 'custom' 
