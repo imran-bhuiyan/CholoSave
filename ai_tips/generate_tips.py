@@ -66,13 +66,15 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
             - Local investment regulations
             - Risk factors specific to the Bangladesh market
             - Banks sector performance in Bangladesh
-        2. If applicable, provide specific, actionable investment advice in 1-2 words and calculate profit based on the investment type, time period, and amount. Include:
+        2. If applicable, provide specific, actionable investment advice in 2-3 lines and calculate profit based on the investment type, time period, and amount. Include:
             - Risk assessment
-            - Expected returns (amount only)
+            - Expected returns  (amount only), if the user haven't provided any time period, use 1 year as the default time period.
             - Local market considerations
             - Two alternative investment options
         3. Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Start with "Hello" as a greeting.
+        4. Do not answer to anything else other than the financial advice question. Do not provide general financial advice or unrelated information.
         """
+
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
@@ -132,6 +134,10 @@ def generate_tips():
                 'duration': investment_duration,
                 'type': investment_type
             }
+
+        # Dynamically build the investment-related question
+        if question == 'investment_advice' and investment_data:
+            question = f"What are the best investment options for me over a {investment_data['time']} {investment_data['duration']} in {investment_data['type']}?"
 
         advice = generate_financial_advice(savings_data, question, group_data=group_data, 
                                            all_groups_data=savings_data['group_contributions'] if group_id == 'all' else None, 
