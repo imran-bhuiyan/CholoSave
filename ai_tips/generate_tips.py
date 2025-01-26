@@ -11,37 +11,55 @@ client = Groq(
     api_key=os.environ.get("GROQ_API_KEY"),
 )
 
-def generate_financial_advice(savings_data, question):
+def generate_financial_advice(savings_data, question, group_data=None, all_groups_data=None):
     try:
+        # Prepare group-specific or all-groups details
+        if all_groups_data:
+            group_details = "\n".join([
+                f"  - {group['group_name']}: BDT {float(group['total_contribution']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}, Emergency Fund: BDT {float(group['emergency_fund']):,.2f}"
+                for group in all_groups_data
+            ])
+            group_summary = f"""
+            Group Contributions Overview:
+            {group_details}
+            """
+        elif group_data:
+            group_summary = f"""
+            Selected Group:
+            Group Name: {group_data['group_name']}
+            - Total contribution: BDT {float(group_data['total_contribution']):,.2f}
+            - Goal amount: BDT {float(group_data['goal_amount']):,.2f}
+            - Emergency fund: BDT {float(group_data['emergency_fund']):,.2f}
+            """
+        else:
+            group_summary = "No specific group or group data provided."
+
+        # Build the prompt
         prompt = f"""
-        You are a financial assistant specializing in actionable advice tailored to users based in Bangladesh. Your task is to provide clear, detailed, and personalized financial recommendations considering the economic situation, local investment options, and regulations in Bangladesh.
+        You are an AI financial advisor specializing in actionable advice tailored to users in Bangladesh. Provide detailed recommendations based on the user's financial data and selected group(s). Consider the local economic situation, investment options, inflation, and regulations.
 
         User Financial Profile:
         - Total savings: BDT {float(savings_data['individual_savings']):,.2f}
         - Monthly income: BDT {float(savings_data['monthly_income']):,.2f}
         - Monthly expenses: BDT {float(savings_data['monthly_expenses']):,.2f}
-        - Group contributions:
-        {chr(10).join([f"  - {group['group_name']}: BDT {float(group['total_contribution']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}" for group in savings_data['group_contributions']]) or 'No group contributions available.'}
-        - Investments:
-        {chr(10).join([f"  - {inv['type']}: BDT {float(inv['amount']):,.2f} invested, BDT {float(inv['returns']):,.2f} returns, ROI: {float(inv['roi'])}%" for inv in savings_data['investments']]) or 'No investments available.'}
         - Loan status: {savings_data['loan_status']}
-        - Emergency fund: BDT {float(savings_data['emergency_fund']):,.2f} out of BDT {float(savings_data['emergency_fund_goal']):,.2f} goal.
+        - Emergency fund: BDT {float(savings_data['emergency_fund']):,.2f} out of BDT {float(savings_data['emergency_fund_goal']):,.2f}
+
+        {group_summary}
 
         User’s Question:
         "{question}"
 
-        Provide:
-        1. A concise summary of their financial situation.
-        2. A specific, step-by-step strategy to achieve their financial goal, considering the economic context of Bangladesh.
-        3. Actionable tips to improve savings, manage investments, or reduce expenses specific to the Bangladeshi market.
-        4. Highlight any risks or additional considerations the user should be aware of, including inflation or local market conditions.
-
-        Respond in a friendly, professional tone, using bullet points or numbered lists for clarity.
-
-        Best regards,
-        AI Financial Assistant
+        Instructions:
+        1. Answer the user's question with actionable advice based on their financial profile and selected group(s). Show advice in 3-4 lines. 
+        2. If \"All Groups\" is selected, provide a high-level strategy to improve group savings, contributions, and emergency fund goals collectively.
+        Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Use, Hello as greeting.
         """
-
+        #If \"All Groups\" is selected, provide a high-level strategy to improve group savings, contributions, and emergency fund goals collectively.
+        #3. Suggest additional savings, investment, or budgeting strategies relevant to the Bangladeshi market (e.g., NSCs, FDs, stock market).
+        #4. Highlight potential risks, including inflation, market volatility, or regulatory changes, and suggest mitigation strategies.
+        #1. Summarize the user’s financial situation in 1-2 sentences.
+        # Generate response using Groq
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[
@@ -60,11 +78,14 @@ def generate_financial_advice(savings_data, question):
 
         response = completion.choices[0].message.content
 
+        # Format headers: replace **header** with <strong>header</strong>
+        formatted_response = response.replace("**", "<strong>").replace("**", "</strong>")
+
         # Parse the response into structured format
         advice = {
-            'title': 'Financial Advice (Bangladesh)',
-            'main_advice': response.split('\n')[0],
-            'steps': [step.strip() for step in response.split('\n')[1:] if step.strip()]
+        'title': 'Financial Advice (Bangladesh)',
+        'main_advice': formatted_response.split('\n')[0],
+        'steps': [step.strip() for step in formatted_response.split('\n')[1:] if step.strip()]
         }
 
         return advice
@@ -79,6 +100,8 @@ def generate_tips():
         data = request.get_json()
         savings_data = data.get('savings_data', {})
         question = data.get('question')
+        group_data = data.get('group_data')
+        all_groups_data = data.get('all_groups_data')
 
         # Validate inputs
         if not question:
@@ -96,7 +119,7 @@ def generate_tips():
                 }), 400
 
         # Generate financial advice
-        advice = generate_financial_advice(savings_data, question)
+        advice = generate_financial_advice(savings_data, question, group_data, all_groups_data)
 
         if advice:
             return jsonify({
