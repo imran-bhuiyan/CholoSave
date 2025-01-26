@@ -11,32 +11,35 @@ client = Groq(
     api_key=os.environ.get("GROQ_API_KEY"),
 )
 
-def generate_financial_advice(savings_data, savings_type, question):
+def generate_financial_advice(savings_data, question):
     try:
         prompt = f"""
-        You are a financial assistant specializing in actionable advice. Your task is to provide clear, detailed, and personalized financial recommendations.
+        You are a financial assistant specializing in actionable advice tailored to users based in Bangladesh. Your task is to provide clear, detailed, and personalized financial recommendations considering the economic situation, local investment options, and regulations in Bangladesh.
 
         User Financial Profile:
-        - Total savings: ${float(savings_data['individual_savings']):,.2f}
-        - Monthly income: ${float(savings_data['monthly_income']):,.2f}
-        - Monthly expenses: ${float(savings_data['monthly_expenses']):,.2f}
+        - Total savings: BDT {float(savings_data['individual_savings']):,.2f}
+        - Monthly income: BDT {float(savings_data['monthly_income']):,.2f}
+        - Monthly expenses: BDT {float(savings_data['monthly_expenses']):,.2f}
         - Group contributions:
-        {chr(10).join([f"  - {group['group_name']}: ${float(group['total_contribution']):,.2f} saved out of ${float(group['goal_amount']):,.2f}" for group in savings_data['group_contributions']]) or 'No group contributions available.'}
+        {chr(10).join([f"  - {group['group_name']}: BDT {float(group['total_contribution']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}" for group in savings_data['group_contributions']]) or 'No group contributions available.'}
         - Investments:
-        {chr(10).join([f"  - {inv['type']}: ${float(inv['amount']):,.2f} invested, ${float(inv['returns']):,.2f} returns, ROI: {float(inv['roi'])}%" for inv in savings_data['investments']]) or 'No investments available.'}
+        {chr(10).join([f"  - {inv['type']}: BDT {float(inv['amount']):,.2f} invested, BDT {float(inv['returns']):,.2f} returns, ROI: {float(inv['roi'])}%" for inv in savings_data['investments']]) or 'No investments available.'}
         - Loan status: {savings_data['loan_status']}
-        - Emergency fund: ${float(savings_data['emergency_fund']):,.2f} out of ${float(savings_data['emergency_fund_goal']):,.2f} goal.
+        - Emergency fund: BDT {float(savings_data['emergency_fund']):,.2f} out of BDT {float(savings_data['emergency_fund_goal']):,.2f} goal.
 
         User’s Question:
         "{question}"
 
         Provide:
         1. A concise summary of their financial situation.
-        2. A specific, step-by-step strategy to achieve their financial goal.
-        3. Actionable tips to improve savings, manage investments, or reduce expenses.
-        4. Highlight any risks or additional considerations the user should be aware of.
+        2. A specific, step-by-step strategy to achieve their financial goal, considering the economic context of Bangladesh.
+        3. Actionable tips to improve savings, manage investments, or reduce expenses specific to the Bangladeshi market.
+        4. Highlight any risks or additional considerations the user should be aware of, including inflation or local market conditions.
 
         Respond in a friendly, professional tone, using bullet points or numbered lists for clarity.
+
+        Best regards,
+        AI Financial Assistant
         """
 
         completion = client.chat.completions.create(
@@ -44,7 +47,7 @@ def generate_financial_advice(savings_data, savings_type, question):
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a professional financial advisor providing actionable advice."
+                    "content": "You are a professional financial advisor providing actionable advice tailored to users in Bangladesh."
                 },
                 {
                     "role": "user",
@@ -59,7 +62,7 @@ def generate_financial_advice(savings_data, savings_type, question):
 
         # Parse the response into structured format
         advice = {
-            'title': 'Financial Advice',
+            'title': 'Financial Advice (Bangladesh)',
             'main_advice': response.split('\n')[0],
             'steps': [step.strip() for step in response.split('\n')[1:] if step.strip()]
         }
@@ -75,10 +78,15 @@ def generate_tips():
     try:
         data = request.get_json()
         savings_data = data.get('savings_data', {})
-        savings_type = data.get('savings_type')
         question = data.get('question')
 
-        # Ensure all necessary fields are present
+        # Validate inputs
+        if not question:
+            return jsonify({
+                'status': 'error',
+                'error': 'No question provided. Please select or enter a question.'
+            }), 400
+
         required_fields = ['individual_savings', 'monthly_income', 'monthly_expenses', 'group_contributions', 'investments', 'loan_status', 'emergency_fund', 'emergency_fund_goal']
         for field in required_fields:
             if field not in savings_data:
@@ -87,7 +95,8 @@ def generate_tips():
                     'error': f"Missing field in savings_data: {field}"
                 }), 400
 
-        advice = generate_financial_advice(savings_data, savings_type, question)
+        # Generate financial advice
+        advice = generate_financial_advice(savings_data, question)
 
         if advice:
             return jsonify({
