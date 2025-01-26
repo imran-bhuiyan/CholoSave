@@ -18,13 +18,13 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
             group_summary = f"""
             Selected Group:
             Group Name: {group_data['group_name']}
-            - Total contribution: BDT {float(group_data['total_contribution']):,.2f}
+            - Total contribution: BDT {float(group_data['total_group_savings']):,.2f}
             - Goal amount: BDT {float(group_data['goal_amount']):,.2f}
             - Emergency fund: BDT {float(group_data['emergency_fund']):,.2f}
             """
         elif all_groups_data:
             group_details = "\n".join([
-                f"  - {group['group_name']}: BDT {float(group['total_contribution']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}, Emergency Fund: BDT {float(group['emergency_fund']):,.2f}"
+                f"  - {group['group_name']}: BDT {float(group['total_group_savings']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}, Emergency Fund: BDT {float(group['emergency_fund']):,.2f}"
                 for group in all_groups_data
             ])
             group_summary = f"""

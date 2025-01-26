@@ -110,7 +110,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                 </div>
             </div>
 
-            <!-- AI Assistant Section -->
+            <!-- Refactored AI Financial Guidance Section -->
             <div class="md:col-span-2 bg-white/70 p-6 rounded-xl shadow-md">
                 <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">AI Financial Guidance</h2>
 
@@ -147,13 +147,14 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                         <option value="risk_management">How should I manage my financial risks?</option>
                         <option value="emergency_fund">How should I handle my emergency fund?</option>
                         <option value="group_savings">How can we improve our group savings?</option>
+                        <option value="custom">Custom Question</option>
                     </select>
                 </div>
 
-                <!-- Custom Question -->
-                <div class="mb-4">
-                    <label for="custom-question" class="block text-sm font-medium text-gray-700 mb-2">Or Write Your Own Question:</label>
-                    <input type="text" id="custom-question" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Type your custom question here...">
+                <!-- Custom Question Block -->
+                <div id="custom-question-block" class="mb-4 hidden">
+                    <label for="custom-question" class="block text-sm font-medium text-gray-700 mb-2">Your Question:</label>
+                    <input type="text" id="custom-question" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Type your question here...">
                 </div>
 
                 <button id="get-result"
@@ -165,8 +166,6 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
             </div>
         </div>
     </div>
-    </div>
-
 
     <script>
     async function displayAdvice(result) {
@@ -198,7 +197,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
             const customQuestion = document.getElementById('custom-question').value.trim();
 
             // Determine which question to send
-            const question = customQuestion || selectedQuestion;
+            const question = selectedQuestion === 'custom' ? customQuestion : selectedQuestion;
             if (!question) {
                 aiResponse.classList.remove('hidden');
                 aiResponse.innerHTML = `
@@ -256,6 +255,11 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('get-result').addEventListener('click', getAIResponse);
+        const questionSelect = document.getElementById('question-select');
+        questionSelect.addEventListener('change', () => {
+            const customQuestionBlock = document.getElementById('custom-question-block');
+            customQuestionBlock.classList.toggle('hidden', questionSelect.value !== 'custom');
+        });
     });
 
     document.getElementById('savings-type').addEventListener('change', () => {
