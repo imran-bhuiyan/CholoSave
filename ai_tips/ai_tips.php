@@ -153,24 +153,25 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
                     </select>
                 </div>
 
-                <!-- Investment Options Section -->
-                <div id="investment-options" class="mb-4 hidden">
-                    <div class="mb-4">
-                        <label for="investment-time" class="block text-sm font-medium text-gray-700 mb-2">Investment Time Period</label>
-                        <div class="flex items-center gap-2">
-                            <input type="number" id="investment-time" class="w-20 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="1" value="1">
-                            <select id="investment-duration" class="w-32 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
-                                <option value="month">Month</option>
-                                <option value="year">Year</option>
-                            </select>
-                        </div>
-                    </div>
+                <!-- Investment Options Section (always visible) -->
+<div id="investment-options" class="mb-4">
+    <div class="mb-4">
+        <label for="investment-time" class="block text-sm font-medium text-gray-700 mb-2">Investment Time Period</label>
+        <div class="flex items-center gap-2">
+            <input type="number" id="investment-time" class="w-20 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="1" value="1">
+            <select id="investment-duration" class="w-32 border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition">
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+            </select>
+        </div>
+    </div>
 
-                    <div class="mb-4">
-                        <label for="investment-type" class="block text-sm font-medium text-gray-700 mb-2">Investment Type</label>
-                        <input type="text" id="investment-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Enter investment type...">
-                    </div>
-                </div>
+    <div class="mb-4">
+        <label for="investment-type" class="block text-sm font-medium text-gray-700 mb-2">Investment Type</label>
+        <input type="text" id="investment-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Enter investment type...">
+    </div>
+</div>
+
 
                 <!-- Custom Question Block -->
                 <div id="custom-question-block" class="mb-4 hidden">
@@ -221,11 +222,11 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
             const customQuestionBlock = document.getElementById('custom-question-block');
             const investmentOptions = document.getElementById('investment-options');
 
-            questionSelect.addEventListener('change', () => {
-                const value = questionSelect.value;
-                investmentOptions.classList.toggle('hidden', value !== 'investment_advice');
-                customQuestionBlock.classList.toggle('hidden', value !== 'custom');
-            });
+            // questionSelect.addEventListener('change', () => {
+            //     const value = questionSelect.value;
+            //     investmentOptions.classList.toggle('hidden', value !== 'investment_advice');
+            //     customQuestionBlock.classList.toggle('hidden', value !== 'custom');
+            // });
 
             document.getElementById('savings-type').addEventListener('change', () => {
         const groupSelection = document.getElementById('group-selection');
