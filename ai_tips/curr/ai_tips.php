@@ -83,7 +83,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">Total Individual Savings</span>
                         <span
-                            class="font-bold text-green-600">BDT <?= number_format($financial_data['individual_savings'], 2) ?></span>
+                            class="font-bold text-green-600">$<?= number_format($financial_data['individual_savings'], 2) ?></span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">Monthly Income</span>
@@ -154,12 +154,6 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
                     </select>
                 </div>
 
-                <!-- Custom Question -->
-                <div class="mb-4">
-                    <label for="custom-question" class="block text-sm font-medium text-gray-700 mb-2">Or Write Your Own Question:</label>
-                    <input type="text" id="custom-question" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 transition" placeholder="Type your custom question here...">
-                </div>
-
                 <button id="get-result"
                     class="w-full bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition font-semibold shadow-md">
                     Get Financial Analysis
@@ -173,99 +167,85 @@ $financial_data = fetchUserFinancialData($conn, $user_id);
 
 
     <script>
-    async function displayAdvice(result) {
-        const aiResponse = document.getElementById('ai-response');
-        const advice = result.advice;
-
-        aiResponse.innerHTML = `
-            <div class="space-y-6 animate-fade-in">
-                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
-                    <h3 class="text-xl font-bold mb-4 text-gray-800">${advice.title || 'Financial Advice'}</h3>
-                    <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
-                    <div class="mt-4">
-                        <h4 class="font-semibold mb-2 text-gray-700">Action Steps:</h4>
-                        <ul class="space-y-2">
-                            ${advice.steps.map(step => `<li class="flex items-center text-gray-600"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-
-    async function getAIResponse() {
-        try {
+        async function displayAdvice(result) {
             const aiResponse = document.getElementById('ai-response');
-            const savingsType = document.getElementById('savings-type').value;
-            const selectedGroupId = document.getElementById('group-id').value;
-            const selectedQuestion = document.getElementById('question-select').value;
-            const customQuestion = document.getElementById('custom-question').value.trim();
+            const advice = result.advice;
 
-            // Determine which question to send
-            const question = customQuestion || selectedQuestion;
-            if (!question) {
-                aiResponse.classList.remove('hidden');
-                aiResponse.innerHTML = `
-                    <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                        <p class="text-red-700">Please select or enter a question.</p>
+            aiResponse.innerHTML = `
+                <div class="space-y-6 animate-fade-in">
+                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                        <h3 class="text-xl font-bold mb-4 text-gray-800">${advice.title || 'Financial Advice'}</h3>
+                        <p class="text-lg text-gray-700 mb-4">${advice.main_advice}</p>
+                        <div class="mt-4">
+                            <h4 class="font-semibold mb-2 text-gray-700">Action Steps:</h4>
+                            <ul class="space-y-2">
+                                ${advice.steps.map(step => `<li class="flex items-center text-gray-600"><span class="text-green-500 mr-2">✓</span>${step}</li>`).join('')}
+                            </ul>
+                        </div>
                     </div>
-                `;
-                return;
-            }
-
-            // Show loading state
-            aiResponse.classList.remove('hidden');
-            aiResponse.innerHTML = `
-                <div class="flex items-center justify-center p-4">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    <span class="ml-2">Analyzing financial data...</span>
-                </div>
-            `;
-
-            // Get financial data from PHP
-            const financialData = <?php echo json_encode($financial_data); ?>;
-
-            const response = await fetch('http://localhost:5000/generate_tips', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    savings_type: savingsType,
-                    group_id: selectedGroupId !== 'all' ? selectedGroupId : null,
-                    savings_data: financialData,
-                    question: question,
-                    all_groups_data: selectedGroupId === 'all' ? financialData.group_contributions : null
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to generate advice');
-            }
-
-            const result = await response.json();
-            if (result.status === 'success') {
-                displayAdvice(result);
-            } else {
-                throw new Error(result.error || 'Failed to generate advice');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            aiResponse.innerHTML = `
-                <div class="bg-red-100 border-l-4 border-red-500 p-4">
-                    <p class="text-red-700">Error: ${error.message}</p>
                 </div>
             `;
         }
-    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('get-result').addEventListener('click', getAIResponse);
-    });
 
-    document.getElementById('savings-type').addEventListener('change', () => {
-        const groupSelection = document.getElementById('group-selection');
-        groupSelection.classList.toggle('hidden', document.getElementById('savings-type').value !== 'group');
-    });
-</script>
+        async function getAIResponse() {
+            try {
+                const aiResponse = document.getElementById('ai-response');
+                const savingsType = document.getElementById('savings-type').value;
+                const selectedQuestion = document.getElementById('question-select').value;
+
+                // Show loading state
+                aiResponse.classList.remove('hidden');
+                aiResponse.innerHTML = `
+            <div class="flex items-center justify-center p-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2">Analyzing financial data...</span>
+            </div>
+        `;
+
+                // Get financial data from PHP
+                const financialData = <?php echo json_encode($financial_data); ?>;
+
+                const response = await fetch('http://localhost:5000/generate_tips', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        savings_type: savingsType,
+                        savings_data: financialData,
+                        question: selectedQuestion
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to generate advice');
+                }
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    displayAdvice(result);
+                } else {
+                    throw new Error(result.error || 'Failed to generate advice');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                aiResponse.innerHTML = `
+            <div class="bg-red-100 border-l-4 border-red-500 p-4">
+                <p class="text-red-700">Error: ${error.message}</p>
+            </div>
+        `;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('get-result').addEventListener('click', getAIResponse);
+        });
+
+        document.getElementById('savings-type').addEventListener('change', () => {
+            const groupSelection = document.getElementById('group-selection');
+            groupSelection.classList.toggle('hidden', document.getElementById('savings-type').value !== 'group');
+        });
+    </script>
+</body>
 
 </html>

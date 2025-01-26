@@ -14,7 +14,15 @@ client = Groq(
 def generate_financial_advice(savings_data, question, group_data=None, all_groups_data=None):
     try:
         # Prepare group-specific or all-groups details
-        if all_groups_data:
+        if group_data:
+            group_summary = f"""
+            Selected Group:
+            Group Name: {group_data['group_name']}
+            - Total contribution: BDT {float(group_data['total_contribution']):,.2f}
+            - Goal amount: BDT {float(group_data['goal_amount']):,.2f}
+            - Emergency fund: BDT {float(group_data['emergency_fund']):,.2f}
+            """
+        elif all_groups_data:
             group_details = "\n".join([
                 f"  - {group['group_name']}: BDT {float(group['total_contribution']):,.2f} saved out of BDT {float(group['goal_amount']):,.2f}, Emergency Fund: BDT {float(group['emergency_fund']):,.2f}"
                 for group in all_groups_data
@@ -22,14 +30,6 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
             group_summary = f"""
             Group Contributions Overview:
             {group_details}
-            """
-        elif group_data:
-            group_summary = f"""
-            Selected Group:
-            Group Name: {group_data['group_name']}
-            - Total contribution: BDT {float(group_data['total_contribution']):,.2f}
-            - Goal amount: BDT {float(group_data['goal_amount']):,.2f}
-            - Emergency fund: BDT {float(group_data['emergency_fund']):,.2f}
             """
         else:
             group_summary = "No specific group or group data provided."
@@ -51,14 +51,14 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
         "{question}"
 
         Instructions:
-        1. Answer the user's question with actionable advice based on their financial profile and selected group(s). Show advice in 3-4 lines. 
-        2. If \"All Groups\" is selected, provide a high-level strategy to improve group savings, contributions, and emergency fund goals collectively.
-        Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Use, Hello as greeting.
+        1. Summarize the user’s financial situation in 1-2 sentences.
+        2. If a specific group is selected, provide advice tailored to that group, including steps to achieve group goals.
+        3. If \"All Groups\" is selected, provide a high-level strategy to improve group savings, contributions, and emergency fund goals collectively.
+        4. Highlight potential risks and suggest mitigation strategies.
+
+        Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity.
         """
-        #If \"All Groups\" is selected, provide a high-level strategy to improve group savings, contributions, and emergency fund goals collectively.
-        #3. Suggest additional savings, investment, or budgeting strategies relevant to the Bangladeshi market (e.g., NSCs, FDs, stock market).
-        #4. Highlight potential risks, including inflation, market volatility, or regulatory changes, and suggest mitigation strategies.
-        #1. Summarize the user’s financial situation in 1-2 sentences.
+
         # Generate response using Groq
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -77,15 +77,13 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
         )
 
         response = completion.choices[0].message.content
-
         # Format headers: replace **header** with <strong>header</strong>
-        formatted_response = response.replace("**", "<strong>").replace("**", "</strong>")
-
+        response = response.replace("**", "<strong>").replace("**", "</strong>")
         # Parse the response into structured format
         advice = {
-        'title': 'Financial Advice (Bangladesh)',
-        'main_advice': formatted_response.split('\n')[0],
-        'steps': [step.strip() for step in formatted_response.split('\n')[1:] if step.strip()]
+            'title': 'Financial Advice (Bangladesh)',
+            'main_advice': response.split('\n')[0],
+            'steps': [step.strip() for step in response.split('\n')[1:] if step.strip()]
         }
 
         return advice
@@ -93,7 +91,7 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
     except Exception as e:
         print(f"Error generating advice: {e}")
         return None
-
+    
 @app.route('/generate_tips', methods=['POST'])
 def generate_tips():
     try:
