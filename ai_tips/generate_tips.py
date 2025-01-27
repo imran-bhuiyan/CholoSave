@@ -47,7 +47,7 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
 
         # Build the prompt
         prompt = f"""
-        You are an AI financial advisor specializing in actionable advice tailored to users in Bangladesh. Provide detailed recommendations based on the user's financial data, selected group(s), and any investment details. Consider the local economic situation, investment options, inflation, and regulations.
+        You are an AI financial advisor specializing in actionable advice tailored to users in Bangladesh. Provide detailed recommendations based on the user's financial data, selected group(s), and any investment details, selected investment type, time period. Consider the local economic situation, investment options, inflation, and regulations.
 
         User Financial Profile:
         - Total Savings: BDT {float(savings_data['individual_savings']):,.2f}
@@ -61,6 +61,7 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
         "{question}"
 
          Instructions:
+        1. if the use selects a specific group, provide detailed advice based on the group's financial data. If the user selects all groups, provide an overview of all groups. Also answer the question based on the user's financial data on the selected group.
         2 . Offer actionable advice as answer to the user's question in 3-4 lines specific to the Bangladesh context, considering:
             - Current Bangladesh economic situation
             - Local investment regulations
@@ -68,7 +69,7 @@ def generate_financial_advice(savings_data, question, group_data=None, all_group
             - Banks sector performance in Bangladesh
         3. If applicable, provide specific, actionable investment advice in 2-3 lines and calculate profit based on the investment type, time period, and amount. Include:
             - Risk assessment
-            - Expected returns  (amount only), if the user haven't provided any time period, use 1 year as the default time period.
+            - Expected returns  (amount only)
             - Local market considerations
             - Two alternative investment options
         4. Respond in a friendly, professional tone. Use bullet points or numbered lists for clarity. Start with "Hello" as a greeting.
