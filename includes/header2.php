@@ -158,6 +158,12 @@ if ($result_user) {
             animation: glow 2s infinite;
             color: #ffd700;
         }
+
+        .logo-image {
+            max-height: 3rem;
+            width: auto;
+            object-fit: contain;
+        }
     </style>
 </head>
 
@@ -168,7 +174,7 @@ if ($result_user) {
                 <!-- Logo -->
                 <div class="logo flex items-center space-x-4">
                     <a href="/test_project/user_landing_page.php" class="flex items-center">
-                        Cholo<span class="brand">Save</span>
+                        <img src="/test_project/includes/project_logo1.png" alt="CholoSave Logo" class="logo-image">
                     </a>
                 </div>
 
@@ -234,6 +240,8 @@ if ($result_user) {
                         </div>
                     </div>
 
+
+
                     <!-- Notifications -->
                     <div class="relative">
                         <a href="/test_project/notification.php"
@@ -246,6 +254,8 @@ if ($result_user) {
                             </div>
                         </a>
                     </div>
+
+
 
                     <!-- Profile Section -->
                     <div class="relative group">
@@ -282,7 +292,8 @@ if ($result_user) {
                                     </div>
                                     <div>
                                         <p class="font-semibold text-gray-800">
-                                            <?php echo htmlspecialchars($user_name); ?></p>
+                                            <?php echo htmlspecialchars($user_name); ?>
+                                        </p>
                                         <p class="text-sm text-gray-500"><?php echo htmlspecialchars($user_email); ?>
                                         </p>
                                     </div>
@@ -295,6 +306,13 @@ if ($result_user) {
                                     <i class="fas fa-user-circle w-5 h-5 mr-3"></i>
                                     My Profile
                                 </a>
+
+                                <a href="/test_project/payment_reminders.php"
+                                    class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-500 transition-colors duration-200">
+                                    <i class="fas fa-calendar-alt w-5 h-5 mr-3"></i>
+                                    Payment Reminder
+                                </a>
+
                                 <div class="border-t border-gray-100 my-1"></div>
                                 <a href="/test_project/logout.php"
                                     class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-200">

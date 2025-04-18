@@ -190,7 +190,7 @@ $financial_data = fetchUserFinancialData($conn, $user_id, $group_id);
     </div>
 
     <script>
-              async function displayAdvice(result) {
+    async function displayAdvice(result) {
     const aiResponse = document.getElementById('ai-response');
     const advice = result.advice;
 
