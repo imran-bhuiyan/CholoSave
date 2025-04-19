@@ -72,7 +72,10 @@ if ($stmt = $conn->prepare($investmentHistoryQuery)) {
     }
     $stmt->close();
 }
-
+// Calculate total actual returns
+$totalActual = array_sum(array_filter(array_map(function ($investment) {
+    return $investment['Return Amount'] ?? 0;
+}, $investments)));
 
 // Store investments in session for PDF export
 $_SESSION['investment_data'] = $investments;
@@ -197,14 +200,12 @@ $_SESSION['investment_data'] = $investments;
                                     <p class="text-sm font-medium text-gray-600">Actual Returns</p>
                                     <h3 class="text-xl font-bold text-gray-900">
                                         <?php
-                                        $totalActual = array_sum(array_filter(array_column($investments, 'Actual Profit')));
                                         echo 'BDT ' . number_format($totalActual, 2);
                                         ?>
                                     </h3>
                                 </div>
                             </div>
                         </div>
-                        
                     </div>
 
                     <!-- Investment History Table -->
@@ -215,93 +216,101 @@ $_SESSION['investment_data'] = $investments;
                                 returns</p>
                         </div>
                         <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50">
-        <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Investment Amount</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Type</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Expected Profit</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Return Amount</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Profit/Loss</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Profit/Loss %</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Return Date</th>
-        </tr>
-    </thead>
-    <tbody class="bg-white divide-y divide-gray-200">
-        <?php foreach ($investments as $investment): ?>
-            <tr class="hover:bg-gray-50 transition-colors duration-200">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    BDT <?php echo number_format($investment['Investment Amount'], 2); ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    <?php echo $investment['Type']; ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Investment Amount</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Type</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Status</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Expected Profit</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Return Amount</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Profit/Loss</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Profit/Loss %</th>
+                                        <th
+                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Return Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <?php foreach ($investments as $investment): ?>
+                                        <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                BDT <?php echo number_format($investment['Investment Amount'], 2); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                <?php echo $investment['Type']; ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <?php
+                                                $statusColor = [
+                                                    'pending' => 'bg-yellow-100 text-yellow-800',
+                                                    'active' => 'bg-green-100 text-green-800',
+                                                    'completed' => 'bg-blue-100 text-blue-800'
+                                                ][$investment['status']] ?? 'bg-gray-100 text-gray-800';
+                                                ?>
+                                                <span class="status-badge <?php echo $statusColor; ?>">
+                                                    <?php echo ucfirst($investment['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                BDT <?php echo number_format($investment['Expected Profit'], 2); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                <?php echo isset($investment['Return Amount']) ? 'BDT ' . number_format($investment['Return Amount'], 2) : '-'; ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm 
                     <?php
-                    $statusColor = [
-                        'pending' => 'bg-yellow-100 text-yellow-800',
-                        'active' => 'bg-green-100 text-green-800',
-                        'completed' => 'bg-blue-100 text-blue-800'
-                    ][$investment['status']] ?? 'bg-gray-100 text-gray-800';
-                    ?>
-                    <span class="status-badge <?php echo $statusColor; ?>">
-                        <?php echo ucfirst($investment['status']); ?>
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    BDT <?php echo number_format($investment['Expected Profit'], 2); ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    <?php echo isset($investment['Return Amount']) ? 'BDT ' . number_format($investment['Return Amount'], 2) : '-'; ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm 
-                    <?php 
                     // Color code Profit/Loss
                     if ($investment['Profit/Loss'] !== null) {
                         echo $investment['Profit/Loss'] > 0 ? 'text-green-600' : 'text-red-600';
                     }
                     ?>">
-                    <?php 
-                    if ($investment['Profit/Loss'] !== null) {
-                        echo $investment['Profit/Loss'] > 0 ? '+' : '';
-                        echo 'BDT ' . number_format($investment['Profit/Loss'], 2);
-                    } else {
-                        echo '-';
-                    }
-                    ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm 
-                    <?php 
+                                                <?php
+                                                if ($investment['Profit/Loss'] !== null) {
+                                                    echo $investment['Profit/Loss'] > 0 ? '+' : '';
+                                                    echo 'BDT ' . number_format($investment['Profit/Loss'], 2);
+                                                } else {
+                                                    echo '-';
+                                                }
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm 
+                    <?php
                     // Color code Profit/Loss Percentage
                     if ($investment['Profit/Loss Percentage'] !== null) {
                         echo $investment['Profit/Loss Percentage'] > 0 ? 'text-green-600' : 'text-red-600';
                     }
                     ?>">
-                    <?php 
-                    if ($investment['Profit/Loss Percentage'] !== null) {
-                        echo $investment['Profit/Loss Percentage'] > 0 ? '+' : '';
-                        echo number_format($investment['Profit/Loss Percentage'], 2) . '%';
-                    } else {
-                        echo '-';
-                    }
-                    ?>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    <?php echo isset($investment['Return Date']) ? date('d-m-Y', strtotime($investment['Return Date'])) : '-'; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
-    </tbody>
-</table>
+                                                <?php
+                                                if ($investment['Profit/Loss Percentage'] !== null) {
+                                                    echo $investment['Profit/Loss Percentage'] > 0 ? '+' : '';
+                                                    echo number_format($investment['Profit/Loss Percentage'], 2) . '%';
+                                                } else {
+                                                    echo '-';
+                                                }
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                <?php echo isset($investment['Return Date']) ? date('d-m-Y', strtotime($investment['Return Date'])) : '-'; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>

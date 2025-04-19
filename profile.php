@@ -156,10 +156,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['current_password'])) 
                 <div class="px-4 py-5 sm:p-6">
                     <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
                         <div class="sm:col-span-1">
-                            <dt class="text-sm font-medium text-gray-500">User ID</dt>
-                            <dd class="mt-1 text-sm text-gray-900"><?php echo htmlspecialchars($user['id']); ?></dd>
-                        </div>
-                        <div class="sm:col-span-1">
                             <dt class="text-sm font-medium text-gray-500">Phone Number</dt>
                             <dd class="mt-1 text-sm text-gray-900"><?php echo htmlspecialchars($user['phone_number']); ?></dd>
                         </div>

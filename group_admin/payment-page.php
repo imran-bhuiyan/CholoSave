@@ -90,12 +90,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'cholosave.uiu@gmail.com';
-        $mail->Password = 'dhsq tqmy dfap ztob'; // Use App Password
+        $mail->Username = 'irfan.montasir001@gmail.com';
+        $mail->Password = 'jhae vsse bdqw tpyf'; // Use App Password
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
-        $mail->setFrom('cholosave.uiu@gmail.com', 'CholoSave');
+        $mail->setFrom('irfan.montasir001@gmail.com', 'CholoSave');
         $mail->addAddress($user_email);
         $mail->isHTML(true);
         $mail->Subject = 'Payment OTP Verification';
