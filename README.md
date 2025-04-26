@@ -19,9 +19,12 @@ Built with **PHP** and **Tailwind CSS**, CholoSave offers a clean and responsive
 - **Database:** MySQL
 - **Server Requirements:** Apache/Nginx server with PHP and MySQL support
 
-Contributors
-Your Name - GitHub Profile
+## Contributors
 
-Contributor 2 Name - GitHub Profile
+- Md. Abdullah Al Imran - https://github.com/imran-bhuiyan
 
-Contributor 3 Name - GitHub Profile
+- Irfanuzzaman Montasir - https://github.com/Irfanuzzaman-Montasir
+
+- Khademul Islam Nahin - https://github.com/Nahin197
+
+- Mahi Alif - [Github Prfile]
