@@ -8,6 +8,7 @@ Built with **PHP** and **Tailwind CSS**, CholoSave offers a clean and responsive
 - 🏦 Create and manage group savings plans
 - 👥 Invite and manage participants
 - 💸 Track individual and group contributions
+- 🤖 AI Tips feature to suggest better savings strategies
 - 📈 View savings progress and statistics
 - 🔔 Notifications for contributions and goal achievements
 - 🔒 Secure user authentication and session management
