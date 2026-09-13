@@ -83,6 +83,9 @@ class AiTipsController extends Controller
             'emergency_fund_goal' => (float) $emergency_fund_goal,
         ];
 
-        return view('ai_tips', ['financialData' => $financialData]);
+        return view('ai_tips', [
+            'financialData' => $financialData,
+            'aiServiceUrl' => rtrim(config('services.ai_tips.url'), '/'),
+        ]);
     }
 }

@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Base URL of the Python AI tips microservice (ai_backend/generate_tips.py).
+    // Defaults to the local development server started with `python generate_tips.py`.
+    'ai_tips' => [
+        'url' => env('AI_SERVICE_URL', 'http://localhost:5000'),
+    ],
+
 ];

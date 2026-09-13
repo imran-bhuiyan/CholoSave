@@ -4,12 +4,25 @@ from groq import Groq
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
+from dotenv import load_dotenv
 import os
 import hashlib
 import json
 
+# Load ai_backend/.env if present; real environment variables always win,
+# so this only affects local development.
+load_dotenv()
+
 app = Flask(__name__)
-CORS(app, resources={r"/generate_tips": {"origins": ["http://localhost:8000", "http://127.0.0.1:8000"]}})  # Restrict CORS to your frontend domain
+
+# CORS: allowed origins are configured via the ALLOWED_ORIGINS environment
+# variable (comma-separated). Defaults keep local development working; in
+# production set it to the public frontend origin(s), e.g.
+#   ALLOWED_ORIGINS=https://your-domain.example
+_allowed_origins = [o.strip() for o in os.environ.get(
+    "ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000"
+).split(",") if o.strip()]
+CORS(app, resources={r"/generate_tips": {"origins": _allowed_origins}})
 
 # Rate limiting: 10 requests per minute per IP using in-memory storage
 limiter = Limiter(
@@ -181,11 +194,17 @@ def generate_tips():
                 'status': 'error',
                 'error': 'Failed to generate advice'
             }), 500
-    except Exception as e:
+    except Exception:
+        # Log the full error server-side; never expose internals to the client.
+        app.logger.exception("Failed to generate advice")
         return jsonify({
             'status': 'error',
-            'error': str(e)
+            'error': 'An internal error occurred. Please try again later.'
         }), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Local development only (`python generate_tips.py`). Debug mode is opt-in
+    # via FLASK_DEBUG=1; it must never be enabled in production. Production
+    # runs this app under gunicorn, which ignores this block entirely:
+    #   gunicorn --workers 2 --bind 127.0.0.1:5000 generate_tips:app
+    app.run(debug=os.environ.get("FLASK_DEBUG", "0") == "1")

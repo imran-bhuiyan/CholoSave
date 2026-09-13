@@ -6,6 +6,7 @@ use App\Models\MyGroup;
 use App\Models\GroupMembership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Session;
 use App\Models\User;
 use App\Models\Savings;
@@ -1146,6 +1147,13 @@ class GroupController extends Controller
             ->where('is_admin', true)
             ->firstOrFail();
 
+        // Block brute-force attempts on the 6-digit OTP (max attempts per
+        // user + transaction, tracked in the default cache store).
+        $throttleKey = 'otp-verify:' . $user->id . ':' . $transactionId;
+        if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+            return redirect()->back()->with('error', 'Too many incorrect attempts. Please start the payment again to request a new OTP.');
+        }
+
         // Get the OTP record from database
         $paymentOtp = \App\Models\PaymentOtp::where('user_id', $user->id)
             ->where('group_id', $groupId)
@@ -1154,8 +1162,11 @@ class GroupController extends Controller
             ->first();
 
         if (!$paymentOtp || $paymentOtp->otp !== $enteredOtp) {
+            RateLimiter::hit($throttleKey, 600);
             return redirect()->back()->with('error', 'Invalid or expired OTP. Please try again.');
         }
+
+        RateLimiter::clear($throttleKey);
 
         // Start database transaction
         DB::beginTransaction();
