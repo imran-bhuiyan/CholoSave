@@ -143,23 +143,28 @@ class GroupMemberController extends Controller
             return redirect()->back()->with('error', 'Too many incorrect attempts. Please start the payment again to request a new OTP.');
         }
 
-        // Get the OTP record from database
-        $paymentOtp = PaymentOtpModel::where('user_id', $user->id)
-            ->where('group_id', $groupId)
-            ->where('transaction_id', $transactionId)
-            ->where('otp_expiry', '>', now())
-            ->first();
-
-        if (!$paymentOtp || $paymentOtp->otp !== $enteredOtp) {
-            RateLimiter::hit($throttleKey, 600);
-            return redirect()->back()->with('error', 'Invalid or expired OTP. Please try again.');
-        }
-
-        RateLimiter::clear($throttleKey);
-
-        // Start database transaction
+        // Verify and record the payment atomically: the OTP row is locked for
+        // the duration of the transaction, so a concurrent duplicate submit
+        // cannot credit savings twice (transaction_info.transaction_id is
+        // also unique at the database level as a final safeguard).
         DB::beginTransaction();
         try {
+            // Get the OTP record from database
+            $paymentOtp = PaymentOtpModel::where('user_id', $user->id)
+                ->where('group_id', $groupId)
+                ->where('transaction_id', $transactionId)
+                ->where('otp_expiry', '>', now())
+                ->lockForUpdate()
+                ->first();
+
+            if (!$paymentOtp || $paymentOtp->otp !== $enteredOtp) {
+                RateLimiter::hit($throttleKey, 600);
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Invalid or expired OTP. Please try again.');
+            }
+
+            RateLimiter::clear($throttleKey);
+
             // Create transaction record
             TransactionInfo::create([
                 'user_id' => $user->id,

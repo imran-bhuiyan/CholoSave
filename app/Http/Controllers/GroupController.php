@@ -978,6 +978,11 @@ class GroupController extends Controller
             ], 403);
         }
 
+        // The membership request must belong to the group in the route
+        if ((int) $request->group_id !== (int) $group->group_id) {
+            abort(404);
+        }
+
         // Update membership status
         $request->update([
             'status' => 'approved',
@@ -1026,6 +1031,11 @@ class GroupController extends Controller
                 'success' => false,
                 'message' => 'Unauthorized access'
             ], 403);
+        }
+
+        // The membership request must belong to the group in the route
+        if ((int) $request->group_id !== (int) $group->group_id) {
+            abort(404);
         }
 
         // Update membership status
@@ -1154,23 +1164,28 @@ class GroupController extends Controller
             return redirect()->back()->with('error', 'Too many incorrect attempts. Please start the payment again to request a new OTP.');
         }
 
-        // Get the OTP record from database
-        $paymentOtp = \App\Models\PaymentOtp::where('user_id', $user->id)
-            ->where('group_id', $groupId)
-            ->where('transaction_id', $transactionId)
-            ->where('otp_expiry', '>', now())
-            ->first();
-
-        if (!$paymentOtp || $paymentOtp->otp !== $enteredOtp) {
-            RateLimiter::hit($throttleKey, 600);
-            return redirect()->back()->with('error', 'Invalid or expired OTP. Please try again.');
-        }
-
-        RateLimiter::clear($throttleKey);
-
-        // Start database transaction
+        // Verify and record the payment atomically: the OTP row is locked for
+        // the duration of the transaction, so a concurrent duplicate submit
+        // cannot credit savings twice (transaction_info.transaction_id is
+        // also unique at the database level as a final safeguard).
         DB::beginTransaction();
         try {
+            // Get the OTP record from database
+            $paymentOtp = \App\Models\PaymentOtp::where('user_id', $user->id)
+                ->where('group_id', $groupId)
+                ->where('transaction_id', $transactionId)
+                ->where('otp_expiry', '>', now())
+                ->lockForUpdate()
+                ->first();
+
+            if (!$paymentOtp || $paymentOtp->otp !== $enteredOtp) {
+                RateLimiter::hit($throttleKey, 600);
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Invalid or expired OTP. Please try again.');
+            }
+
+            RateLimiter::clear($throttleKey);
+
             // Create transaction record
             \App\Models\TransactionInfo::create([
                 'user_id' => $user->id,
@@ -1387,6 +1402,17 @@ class GroupController extends Controller
 
         if ($currentAdminId == $newAdminId) {
             return response()->json(['error' => 'You are already the admin.'], 422);
+        }
+
+        // The new admin must be an approved member of the group, otherwise
+        // the group could end up without an administrator.
+        $newAdminMembership = GroupMembership::where('group_id', $groupId)
+            ->where('user_id', $newAdminId)
+            ->where('status', 'approved')
+            ->first();
+
+        if (!$newAdminMembership) {
+            return response()->json(['error' => 'The new admin must be an approved member of this group.'], 422);
         }
 
         DB::beginTransaction();
@@ -1645,26 +1671,63 @@ class GroupController extends Controller
             'repayment_amount' => 'required|numeric|min:1'
         ]);
 
+        $user = auth()->user();
+
         $loan = LoanRequest::findOrFail($request->loan_id);
+
+        // Only the borrower or an approved admin of the loan's group may
+        // record the repayment.
+        $isBorrower = $loan->user_id === $user->id;
+        $isGroupAdmin = GroupMembership::where('group_id', $loan->group_id)
+            ->where('user_id', $user->id)
+            ->where('is_admin', true)
+            ->where('status', 'approved')
+            ->exists();
+
+        if (!$isBorrower && !$isGroupAdmin) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
 
         // Only allow payment if loan is approved and not already repaid
         if ($loan->status !== 'approved') {
             return response()->json(['success' => false, 'message' => 'Loan is not approved or already repaid.']);
         }
 
-        $loan->status = 'repaid';
-        $loan->payment_method = $request->payment_method;
-        $loan->transaction_id = (string) \Illuminate\Support\Str::uuid();
-        $loan->payment_time = now();
-        $loan->repayment_date = now();
-        $loan->repayment_amount = $request->repayment_amount;
-        $loan->save();
+        // Cap the repayment at the outstanding loan amount so the emergency
+        // fund cannot be inflated beyond what was lent.
+        $repaymentAmount = min((float) $request->repayment_amount, (float) $loan->amount);
 
-        // Add the paid amount back to the group's emergency fund
-        $group = \App\Models\MyGroup::find($loan->group_id);
-        if ($group) {
-            $group->emergency_fund += $loan->repayment_amount;
-            $group->save();
+        // Lock the loan row so concurrent duplicate submissions cannot both
+        // mark the loan repaid.
+        DB::beginTransaction();
+        try {
+            $loan = LoanRequest::where('id', $loan->id)->lockForUpdate()->firstOrFail();
+
+            if ($loan->status !== 'approved') {
+                DB::rollBack();
+                return response()->json(['success' => false, 'message' => 'Loan is not approved or already repaid.']);
+            }
+
+            $loan->status = 'repaid';
+            $loan->payment_method = $request->payment_method;
+            $loan->transaction_id = (string) \Illuminate\Support\Str::uuid();
+            $loan->payment_time = now();
+            $loan->repayment_date = now();
+            $loan->repayment_amount = $repaymentAmount;
+            $loan->save();
+
+            // Add the paid amount back to the group's emergency fund
+            $group = MyGroup::where('group_id', $loan->group_id)->lockForUpdate()->first();
+            if ($group) {
+                $group->emergency_fund = (float) $group->emergency_fund + $repaymentAmount;
+                $group->save();
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Loan repayment failed: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to record the repayment. Please try again.'], 500);
         }
 
         return response()->json(['success' => true]);

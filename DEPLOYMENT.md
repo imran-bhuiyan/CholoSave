@@ -35,7 +35,6 @@ DB_PASSWORD=<strong password>
 
 SESSION_DRIVER=database
 SESSION_SECURE_COOKIE=true     # requires HTTPS
-
 # REQUIRED for OTP emails (payment + password reset). With MAIL_MAILER=log
 # OTPs are only written to storage/logs/laravel.log and users get nothing.
 MAIL_MAILER=smtp
@@ -94,7 +93,29 @@ php artisan config:cache && php artisan route:cache && php artisan view:cache
 `storage/` and `bootstrap/cache/` must be writable by the web server user.
 Do not run `php artisan db:seed` in production (it creates a test user).
 
-## 4. Secrets
+## 4. Reverse proxy (TrustProxies)
+
+`bootstrap/app.php` configures Laravel to trust `X-Forwarded-*` headers from
+the **loopback addresses only** (`127.0.0.1`, `::1`) — the standard setup
+where Nginx terminates TLS on the same host as PHP-FPM. This is what makes
+Laravel generate `https://` URLs and log the real client IP (used by the
+login rate limiter).
+
+- If your TLS proxy runs on a **different host** (external load balancer,
+  Cloudflare, Docker network), edit `bootstrap/app.php` and replace the
+  loopback list with that proxy's IP range. Do **not** use `'*'`: trusting
+  every client would let attackers spoof `X-Forwarded-For` and evade
+  IP-based rate limiting.
+- Nginx must pass the standard headers, e.g.:
+  `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+  `proxy_set_header X-Forwarded-Proto $scheme;`
+- Local development over plain HTTP is unaffected (no proxy headers are
+  present).
+- `SESSION_SECURE_COOKIE=true` in the production `.env` (already listed in
+  section 1) makes the session cookie HTTPS-only. Leave it unset/null in
+  local development so plain-HTTP logins keep working.
+
+## 5. Secrets
 
 - Never commit `.env` or `ai_backend/.env` (both are gitignored — verify with
   `git status` before pushing).

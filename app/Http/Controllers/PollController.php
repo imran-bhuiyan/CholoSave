@@ -5,18 +5,37 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\MyGroup;
 use App\Models\Poll;
+use App\Models\GroupMembership;
 use Illuminate\Support\Facades\Auth;
 
 class PollController extends Controller
 {
+    /**
+     * Ensure the authenticated user is an approved admin of the group.
+     */
+    private function authorizeGroupAdmin($groupId): void
+    {
+        $isAdmin = GroupMembership::where('group_id', $groupId)
+            ->where('user_id', auth()->id())
+            ->where('is_admin', true)
+            ->where('status', 'approved')
+            ->exists();
+
+        abort_unless($isAdmin, 403, 'Only the group admin can manage polls.');
+    }
+
     public function create($groupId)
     {
+        $this->authorizeGroupAdmin($groupId);
+
         $group = MyGroup::findOrFail($groupId);
         return view('groups.admin.create_poll', compact('group'));
     }
 
     public function store(Request $request, $groupId)
     {
+        $this->authorizeGroupAdmin($groupId);
+
         $request->validate([
             'question' => 'required|string|max:500'
         ]);
@@ -69,6 +88,10 @@ class PollController extends Controller
 
         try {
             $poll = Poll::findOrFail($pollId);
+
+            // Only the admin of the poll's own group may update it
+            $this->authorizeGroupAdmin($poll->group_id);
+
             $poll->update([
                 'poll_question' => $request->poll_question,
                 'status' => $request->status
@@ -90,7 +113,10 @@ class PollController extends Controller
     {
         try {
             $poll = Poll::findOrFail($pollId);
-            
+
+            // Only the admin of the poll's own group may delete it
+            $this->authorizeGroupAdmin($poll->group_id);
+
             // Delete associated votes first
             $poll->votes()->delete();
             
@@ -115,9 +141,31 @@ class PollController extends Controller
             'vote_option' => 'required|in:yes,no'
         ]);
 
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must be logged in to vote.'
+            ], 401);
+        }
+
         try {
             $poll = Poll::findOrFail($pollId);
-            $userId = Auth::id();
+
+            // Only approved members of the poll's group may vote
+            $isMember = GroupMembership::where('group_id', $poll->group_id)
+                ->where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->exists();
+
+            if (!$isMember) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not a member of this group.'
+                ], 403);
+            }
+
+            $userId = $user->id;
 
             // Check if user has already voted
             $existingVote = $poll->votes()->where('user_id', $userId)->first();

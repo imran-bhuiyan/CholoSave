@@ -171,7 +171,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reminders', [ReminderController::class, 'index'])->name('reminders');
 
     // Site Admin Dashboard Route
-    Route::get('/site-admin/dashboard', [SiteAdminController::class, 'index'])->name('site_admin.dashboard');
+    Route::get('/site-admin/dashboard', [SiteAdminController::class, 'index'])->name('site_admin.dashboard')->middleware('site_admin');
 
     // Forum Routes
     Route::prefix('forum')->group(function () {
@@ -184,11 +184,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Campaign Routes
-    Route::get('/admin/campaign/create', [CampaignController::class, 'create'])->name('admin.campaign.create');
-    Route::post('/admin/campaign/store', [CampaignController::class, 'store'])->name('admin.campaign.store');
-    Route::get('/admin/campaign/manage', [CampaignController::class, 'index'])->name('admin.campaign.manage');
-    Route::get('/admin/campaign/edit/{id}', [CampaignController::class, 'edit'])->name('admin.campaign.edit');
-    Route::patch('/admin/campaign/update/{id}', [CampaignController::class, 'update'])->name('admin.campaign.update');
+    Route::middleware('site_admin')->group(function () {
+        Route::get('/admin/campaign/create', [CampaignController::class, 'create'])->name('admin.campaign.create');
+        Route::post('/admin/campaign/store', [CampaignController::class, 'store'])->name('admin.campaign.store');
+        Route::get('/admin/campaign/manage', [CampaignController::class, 'index'])->name('admin.campaign.manage');
+        Route::get('/admin/campaign/edit/{id}', [CampaignController::class, 'edit'])->name('admin.campaign.edit');
+        Route::patch('/admin/campaign/update/{id}', [CampaignController::class, 'update'])->name('admin.campaign.update');
+    });
 
     // Chat routes
     Route::get('/groups/{groupId}/chat', [ChatController::class, 'index'])->name('chat.index');
@@ -196,31 +198,31 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Admin Loan Routes
-Route::prefix('admin/loan')->name('admin.loan.')->group(function () {
+Route::prefix('admin/loan')->name('admin.loan.')->middleware(['auth'])->group(function () {
     Route::get('/request/{group}', [LoanRequestController::class, 'create'])->name('request.create');
     Route::post('/request/{group}', [LoanRequestController::class, 'store'])->name('request.store');
     Route::get('/history/{group}', [LoanRequestController::class, 'adminLoanHistory'])->name('history');
 });
 
 // Admin Withdrawal Routes
-Route::prefix('admin/withdrawal')->name('admin.withdrawal.')->group(function () {
+// The legacy /requests/{withdrawal}/approve|reject routes were removed: they
+// pointed to controller methods that do not exist (adminRequests /
+// rejectWithdrawal) and duplicated the guarded routes below.
+Route::prefix('admin/withdrawal')->name('admin.withdrawal.')->middleware(['auth'])->group(function () {
     Route::get('/request/{group}', [WithdrawalController::class, 'adminCreate'])->name('request.create');
     Route::post('/request/{group}', [WithdrawalController::class, 'adminStore'])->name('request.store');
     Route::get('/history/{group}', [WithdrawalController::class, 'adminPersonalWithdrawalHistory'])->name('history');
-    Route::get('/requests/{group}', [WithdrawalController::class, 'adminRequests'])->name('requests');
-    Route::post('/requests/{withdrawal}/approve', [WithdrawalController::class, 'approveWithdrawal'])->name('requests.approve');
-    Route::post('/requests/{withdrawal}/reject', [WithdrawalController::class, 'rejectWithdrawal'])->name('requests.reject');
 });
 
 // Member Withdrawal Routes
-Route::prefix('member/withdrawal')->name('member.withdrawal.')->group(function () {
+Route::prefix('member/withdrawal')->name('member.withdrawal.')->middleware(['auth'])->group(function () {
     Route::get('/request/{group}', [WithdrawalController::class, 'create'])->name('request.create');
     Route::post('/request/{group}', [WithdrawalController::class, 'store'])->name('request.store');
     Route::get('/history/{group}', [WithdrawalController::class, 'withdrawalHistory'])->name('history');
 });
 
 // Admin Poll Routes
-Route::prefix('admin/poll')->name('admin.poll.')->group(function () {
+Route::prefix('admin/poll')->name('admin.poll.')->middleware(['auth'])->group(function () {
     Route::get('/create/{group}', [PollController::class, 'create'])->name('create');
     Route::post('/store/{group}', [PollController::class, 'store'])->name('store');
     Route::get('/list/{group}', [PollController::class, 'list'])->name('list');
@@ -230,19 +232,21 @@ Route::prefix('admin/poll')->name('admin.poll.')->group(function () {
 });
 
 // Member Poll Routes
-Route::prefix('member/poll')->name('member.poll.')->group(function () {
+Route::prefix('member/poll')->name('member.poll.')->middleware(['auth'])->group(function () {
     Route::post('/vote/{poll}', [PollController::class, 'vote'])->name('vote');
 });
 
 // Admin Withdrawal Routes
-Route::get('/groups/{groupId}/admin/withdrawals', [WithdrawalController::class, 'adminWithdrawalHistory'])->name('admin.withdrawals.index');
-Route::post('/groups/{groupId}/admin/withdrawals/{withdrawal_id}/approve', [WithdrawalController::class, 'approveWithdrawal'])->name('admin.withdrawals.approve');
-Route::post('/groups/{groupId}/admin/withdrawals/{withdrawal_id}/decline', [WithdrawalController::class, 'declineWithdrawal'])->name('admin.withdrawals.decline');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/groups/{groupId}/admin/withdrawals', [WithdrawalController::class, 'adminWithdrawalHistory'])->name('admin.withdrawals.index');
+    Route::post('/groups/{groupId}/admin/withdrawals/{withdrawal_id}/approve', [WithdrawalController::class, 'approveWithdrawal'])->name('admin.withdrawals.approve');
+    Route::post('/groups/{groupId}/admin/withdrawals/{withdrawal_id}/decline', [WithdrawalController::class, 'declineWithdrawal'])->name('admin.withdrawals.decline');
+});
 
-Route::post('/group/loan/pay', [GroupController::class, 'payLoan'])->name('group.loan.pay');
+Route::post('/group/loan/pay', [GroupController::class, 'payLoan'])->name('group.loan.pay')->middleware('auth');
 
 // Admin Expert Team Routes
-Route::middleware(['auth'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'site_admin'])->prefix('admin')->group(function () {
     Route::get('/add-expert', [App\Http\Controllers\ExpertController::class, 'create'])->name('admin.expert.create');
     Route::post('/add-expert', [App\Http\Controllers\ExpertController::class, 'store'])->name('admin.expert.store');
     Route::get('/manage-experts', [App\Http\Controllers\ExpertController::class, 'manage'])->name('admin.expert.manage');

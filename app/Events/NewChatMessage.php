@@ -10,7 +10,6 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
 
 class NewChatMessage implements ShouldBroadcast
 {
@@ -29,19 +28,10 @@ class NewChatMessage implements ShouldBroadcast
         $this->userId = $message->user_id;
         $this->username = $message->user->name;
         $this->isAdmin = $isAdmin;
-
-        Log::info('NewChatMessage event constructed', [
-            'message_id' => $message->id,
-            'group_id' => $this->groupId,
-            'user_id' => $this->userId,
-            'username' => $this->username,
-            'is_admin' => $this->isAdmin
-        ]);
     }
 
     public function broadcastOn()
     {
-        Log::info('Broadcasting on channel: group.' . $this->groupId);
         return new Channel('group.' . $this->groupId);
     }
 
@@ -69,7 +59,6 @@ class NewChatMessage implements ShouldBroadcast
             'created_at' => $this->message->created_at->format('h:i A')
         ];
 
-        Log::info('Broadcasting with data:', $data);
         return $data;
     }
-} 
+}

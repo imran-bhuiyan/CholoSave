@@ -119,12 +119,26 @@ class WithdrawalController extends Controller
     }
 
     /**
+     * Ensure the authenticated user is an approved admin of the given group.
+     */
+    private function authorizeGroupAdmin($groupId): void
+    {
+        $isAdmin = GroupMembership::where('group_id', $groupId)
+            ->where('user_id', auth()->id())
+            ->where('is_admin', true)
+            ->where('status', 'approved')
+            ->exists();
+
+        abort_unless($isAdmin, 403, 'Only the group admin can manage withdrawal requests.');
+    }
+
+    /**
      * Approve a withdrawal request
      */
     public function approveWithdrawal($groupId, $withdrawal_id)
     {
         $withdrawal = Withdrawal::with('user')->findOrFail($withdrawal_id);
-        
+
         // Verify the withdrawal belongs to the group
         if ($withdrawal->group_id != $groupId) {
             return response()->json([
@@ -132,6 +146,9 @@ class WithdrawalController extends Controller
                 'message' => 'Invalid withdrawal request'
             ], 400);
         }
+
+        // Only the group admin may approve
+        $this->authorizeGroupAdmin($groupId);
 
         // Check if withdrawal is still pending
         if ($withdrawal->status !== 'pending') {
@@ -169,7 +186,7 @@ class WithdrawalController extends Controller
     public function declineWithdrawal($groupId, $withdrawal_id)
     {
         $withdrawal = Withdrawal::with('user')->findOrFail($withdrawal_id);
-        
+
         // Verify the withdrawal belongs to the group
         if ($withdrawal->group_id != $groupId) {
             return response()->json([
@@ -177,6 +194,9 @@ class WithdrawalController extends Controller
                 'message' => 'Invalid withdrawal request'
             ], 400);
         }
+
+        // Only the group admin may decline
+        $this->authorizeGroupAdmin($groupId);
 
         // Check if withdrawal is still pending
         if ($withdrawal->status !== 'pending') {

@@ -94,6 +94,19 @@ class InvestmentController extends Controller
         try {
             DB::beginTransaction();
 
+            // Verify the investment belongs to the group being administered
+            $investment = Investment::where('investment_id', $validated['investment_id'])
+                ->where('group_id', $group->group_id)
+                ->first();
+
+            if (!$investment) {
+                DB::rollBack();
+                return redirect()
+                    ->back()
+                    ->with('error', 'The selected investment does not belong to this group.')
+                    ->withInput();
+            }
+
             // Create the investment return
             $return = new InvestmentReturn([
                 'investment_id' => $validated['investment_id'],
@@ -104,7 +117,6 @@ class InvestmentController extends Controller
             $return->save();
 
             // Update the investment status to completed
-            $investment = Investment::find($validated['investment_id']);
             $investment->status = 'completed';
             $investment->save();
 
