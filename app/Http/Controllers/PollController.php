@@ -86,12 +86,10 @@ class PollController extends Controller
             'status' => 'required|in:active,closed'
         ]);
 
+        $poll = Poll::findOrFail($pollId);
+        $this->authorizeGroupAdmin($poll->group_id);
+
         try {
-            $poll = Poll::findOrFail($pollId);
-
-            // Only the admin of the poll's own group may update it
-            $this->authorizeGroupAdmin($poll->group_id);
-
             $poll->update([
                 'poll_question' => $request->poll_question,
                 'status' => $request->status
@@ -111,12 +109,10 @@ class PollController extends Controller
 
     public function delete($pollId)
     {
+        $poll = Poll::findOrFail($pollId);
+        $this->authorizeGroupAdmin($poll->group_id);
+
         try {
-            $poll = Poll::findOrFail($pollId);
-
-            // Only the admin of the poll's own group may delete it
-            $this->authorizeGroupAdmin($poll->group_id);
-
             // Delete associated votes first
             $poll->votes()->delete();
             

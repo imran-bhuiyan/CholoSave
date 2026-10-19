@@ -15,8 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name', 255)->nullable();
             $table->string('email', 255)->nullable();
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('phone_number', 255)->nullable();
             $table->string('password', 255)->nullable();
+            $table->rememberToken();
             $table->enum('role', ['user', 'group_admin', 'admin'])->default('user');
             $table->timestamps();
             $table->string('profile_picture', 255)->nullable(false)->default('None');
