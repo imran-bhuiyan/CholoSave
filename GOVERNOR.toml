@@ -1,0 +1,72 @@
+id = "cs"
+name = "CholoSave"
+task_prefix = "cs-"
+purpose = "Collaborative FinTech savings circles, bidding cycles, and peer-to-peer payout pools. Laravel + MySQL."
+not_the_same_as = "TakaFlow is a single-user local ledger. ConsoleTheory is a publication site. CholoSave is multi-user with Eloquent decimal:2, Sanctum tokens, and database row locks."
+
+[[rooms]]
+name = "Money"
+hot = true
+paths = [
+  "app/Http/Controllers/PaymentController.php",
+  "app/Http/Controllers/WithdrawalController.php",
+  "app/Models/SavingsPool.php",
+  "app/Models/Transaction.php",
+  "database/migrations/**"
+]
+
+[[rooms]]
+name = "Realtime"
+hot = true
+paths = [
+  "routes/channels.php",
+  "config/broadcasting.php",
+  "app/Events/**"
+]
+
+[[rooms]]
+name = "Tips"
+hot = true
+paths = [
+  "app/Http/Controllers/AiTipsController.php",
+  "ai_backend/**"
+]
+
+[[dormant]]
+name = "Auth"
+reason = "Sanctum authentication stable; modify only on dedicated auth tasks."
+
+[[dormant]]
+name = "Views"
+reason = "Blade catalog stable; modify only on UI tasks."
+
+[[invariants]]
+id = "money-concurrency"
+tier = "boundary"
+paths = [
+  "app/Http/Controllers/PaymentController.php",
+  "app/Http/Controllers/WithdrawalController.php",
+  "app/Models/SavingsPool.php"
+]
+test = "php artisan test"
+question = "Why must financial pool and withdrawal mutations execute inside DB::transaction with lockForUpdate?"
+accept = ["race", "concurrency", "lock", "transaction", "double", "pessimistic"]
+
+[[invariants]]
+id = "private-channels"
+tier = "boundary"
+paths = [
+  "routes/channels.php",
+  "config/broadcasting.php"
+]
+test = "php artisan test"
+question = "Which channel type and authorization guard must be used for group savings communication?"
+accept = ["private", "privatechannel", "auth", "authorize"]
+
+[[invariants]]
+id = "tracked-env-hygiene"
+tier = "boundary"
+paths = ["env", ".env"]
+test = "git status"
+question = "What must be done to the committed 'env' file before production deployment?"
+accept = ["untrack", "purge", "rm", "gitignore", "rotate", "remove"]
